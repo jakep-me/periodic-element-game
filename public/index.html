@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>주기율표 매칭 게임 - 원소기호 암기 사이트</title>
+    <meta name="description" content="주기율표 1번부터 50번까지 한국어와 영어 카드를 매칭하며 즐기는 실시간 멀티플레이 원소 암기 게임입니다.">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 10px; text-align: center; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .screen { display: none; }
+        .active { display: block; }
+        button { background: #4CAF50; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; margin: 5px; width: 80%; max-width: 300px; }
+        input { padding: 12px; font-size: 16px; width: 75%; max-width: 280px; margin-bottom: 10px; border-radius: 5px; border: none; }
+        .player-list { background: #2a2a2a; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .card-container { display: flex; flex-wrap: wrap; justify-content: center; margin: 15px 0; gap: 8px; }
+        .card { background: #fff; color: #000; border-radius: 6px; padding: 15px 10px; width: 65px; font-weight: bold; font-size: 13px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .card.ko { border: 3px solid #2196F3; }
+        .card.en { border: 3px solid #FF9800; }
+        .card.joker { border: 3px solid #E91E63; background: #ffd2e0; }
+        .log-box { background: #000; border: 1px solid #333; height: 100px; overflow-y: auto; text-align: left; padding: 10px; font-size: 12px; border-radius: 5px; color: #0f0; margin: 15px 0; }
+        .ads-banner { background: #333; padding: 15px; margin: 20px 0; border-radius: 5px; font-size: 12px; color: #aaa; border: 1px dashed #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="ads-banner">광고 영역 (애드센스 승인 후 코드가 삽입됩니다)</div>
+
+        <div id="lobbyScreen" class="screen active">
+            <h2>🧪 주기율표 매칭 게임</h2>
+            <p>1~50번 원소 기호를 맞춰 카드를 털어내세요!</p>
+            <input type="text" id="nicknameInput" placeholder="닉네임 입력" maxlength="8"><br>
+            <button onclick="joinGame()">게임방 입장</button>
+            
+            <div class="player-list">
+                <h3>현재 대기열</h3>
+                <div id="waitingPlayers">대기 중인 플레이어가 없습니다.</div>
+            </div>
+            <button onclick="addAI()" style="background:#555;">🤖 AI 컴퓨터 추가</button><br>
+            <button onclick="startGame()" style="background:#ff5722;">게임 시작! (최소 2인)</button>
+        </div>
+
+        <div id="gameScreen" class="screen">
+            <h3 id="turnIndicator" style="color: #4CAF50;">누구의 턴인가요?</h3>
+            <div id="opponentsArea"></div>
+            
+            <div class="log-box" id="logBox"></div>
+            
+            <button id="drawBtn" onclick="drawCard()" style="display:none; background:#ff9800; font-size:18px; padding:15px;">👉 이전 사람 카드 1장 뽑기</button>
+            
+            <h4>내 카드 목록</h4>
+            <div id="myCards" class="card-container"></div>
+        </div>
+
+        <div id="resultScreen" class="screen">
+            <h2>🏆 게임 종료</h2>
+            <h1 id="winnerText" style="color:#4CAF50;"></h1>
+            <h3 id="loserText" style="color:#e91e63;"></h3>
+            <button onclick="location.reload()" style="background:#2196F3;">처음으로 돌아가기</button>
+        </div>
+        
+        <div class="ads-banner">광고 영역 (애드센스 승인 후 코드가 삽입됩니다)</div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myName = "";
+
+        function joinGame() {
+            const input = document.getElementById('nicknameInput').value.trim();
+            if(!input) return alert("닉네임을 입력하세요.");
+            myName = input;
+            socket.emit('joinGame', myName);
+            document.getElementById('nicknameInput').disabled = true;
+        }
+
+        function addAI() {
+            socket.emit('addAI');
+        }
+
+        function startGame() {
+            socket.emit('startGame');
+        }
+
+        function drawCard() {
+            socket.emit('drawCard');
+        }
+
+        socket.on('updateState', (state) => {
+            const listDiv = document.getElementById('waitingPlayers');
+            if(state.players.length > 0) {
+                listDiv.innerHTML = state.players.map(p => `${p.name} ${p.isAI ? '🤖' : '👤'}`).join('<br>');
+            }
+        });
+
+        socket.on('gameStarted', (state) => {
+            document.getElementById('lobbyScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            updateGameBoard(state);
+        });
+
+        socket.on('updateState', (state) => {
+            if(state.gameStarted) {
+                updateGameBoard(state);
+            }
+        });
+
+        socket.on('log', (msg) => {
+            const logBox = document.getElementById('logBox');
+            logBox.innerHTML += `<div>${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        });
+
+        socket.on('gameOver', (data) => {
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('resultScreen').classList.add('active');
+            document.getElementById('winnerText').innerText = `🥇 승리자: ${data.winner}`;
+            document.getElementById('loserText').innerText = `💀 꼴찌(조커): ${data.loser}`;
+        });
+
+        function updateGameBoard(state) {
+            const me = state.players.find(p => p.id === socket.id);
+            const currentTurnPlayer = state.players[state.turnIndex];
+            
+            // 턴 표시
+            const turnIndicator = document.getElementById('turnIndicator');
+            if (currentTurnPlayer.id === socket.id) {
+                turnIndicator.innerText = "🚨 내 턴입니다! 아래 버튼을 눌러 카드를 뽑으세요.";
+                document.getElementById('drawBtn').style.display = "inline-block";
+            } else {
+                turnIndicator.innerText = `⏳ ${currentTurnPlayer.name}의 턴 진행 중...`;
+                document.getElementById('drawBtn').style.display = "none";
+            }
+
+            // 내 카드 출력
+            const myCardsDiv = document.getElementById('myCards');
+            if (me && me.cards) {
+                myCardsDiv.innerHTML = me.cards.map(c => `
+                    <div class="card ${c.lang}">
+                        ${c.name}<br><small>${c.num === 999 ? '' : c.num + '번'}</small>
+                    </div>
+                `).join('');
+            }
+
+            // 상대방 카드 현황 출력
+            const oppsDiv = document.getElementById('opponentsArea');
+            oppsDiv.innerHTML = state.players.map(p => `
+                <div style="margin:5px; padding:5px; background:${p.id === currentTurnPlayer.id ? '#333' : 'transparent'}; border-radius:5px;">
+                    ${p.name}: <b>${p.cards.length}장</b> 보유
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
