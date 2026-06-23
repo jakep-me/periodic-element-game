@@ -3,154 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>주기율표 매칭 게임 - 원소기호 암기 사이트</title>
-    <meta name="description" content="주기율표 1번부터 50번까지 한국어와 영어 카드를 매칭하며 즐기는 실시간 멀티플레이 원소 암기 게임입니다.">
+    <title>초정밀 3D 주기율표 매칭 네트워크 배틀 아레나</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 10px; text-align: center; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .screen { display: none; }
-        .active { display: block; }
-        button { background: #4CAF50; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; margin: 5px; width: 80%; max-width: 300px; }
-        input { padding: 12px; font-size: 16px; width: 75%; max-width: 280px; margin-bottom: 10px; border-radius: 5px; border: none; }
-        .player-list { background: #2a2a2a; border-radius: 8px; padding: 15px; margin: 15px 0; }
-        .card-container { display: flex; flex-wrap: wrap; justify-content: center; margin: 15px 0; gap: 8px; }
-        .card { background: #fff; color: #000; border-radius: 6px; padding: 15px 10px; width: 65px; font-weight: bold; font-size: 13px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .card.ko { border: 3px solid #2196F3; }
-        .card.en { border: 3px solid #FF9800; }
-        .card.joker { border: 3px solid #E91E63; background: #ffd2e0; }
-        .log-box { background: #000; border: 1px solid #333; height: 100px; overflow-y: auto; text-align: left; padding: 10px; font-size: 12px; border-radius: 5px; color: #0f0; margin: 15px 0; }
-        .ads-banner { background: #333; padding: 15px; margin: 20px 0; border-radius: 5px; font-size: 12px; color: #aaa; border: 1px dashed #555; }
+        :root {
+            --bg-main: #0a0c10;
+            --panel-bg: #141923;
+            --accent-blue: #0070f3;
+            --accent-orange: #ff8a00;
+            --accent-joker: #ff007a;
+            --text-glow: 0 0 10px rgba(0, 112, 243, 0.6);
+            --card-width: 80px;
+            --card-height: 115px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background-color: var(--bg-main); color: #f5f6f9; font-family: -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif; overflow-x: hidden; padding: 15px; }
+
+        .app-wrapper { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 30px); }
+        
+        /* 왼쪽 사이드 메뉴 및 실시간 컨트롤 패널 */
+        .control-side-panel { background: var(--panel-bg); border-radius: 12px; border: 1px solid #222e45; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        .panel-header h2 { font-size: 20px; color: #fff; text-shadow: var(--text-glow); margin-bottom: 5px; text-align: center; }
+        .panel-header p { font-size: 12px; color: #7a8c9e; text-align: center; margin-bottom: 20px; }
+        
+        .interactive-form input { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; color: #fff; font-size: 14px; margin-bottom: 12px; transition: 0.3s; }
+        .interactive-form input:focus { border-color: var(--accent-blue); box-shadow: var(--text-glow); outline: none; }
+        
+        .btn-action { width: 100%; background: linear-gradient(135deg, #0070f3, #00c6ff); color: #fff; font-weight: bold; padding: 14px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s ease-in-out; margin-bottom: 10px; }
+        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,112,243,0.4); }
+        .btn-action:active { transform: translateY(0); }
+        
+        /* 실시간 시스템 로그 터미널 창 */
+        .terminal-log-flow { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #58a6ff; height: 180px; overflow-y: auto; margin-top: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+
+        /* 메인 대형 디스플레이 존 */
+        .main-board-viewport { display: grid; grid-template-rows: auto 1fr auto; gap: 15px; }
+        
+        /* 룸 상태 탑 바 */
+        .room-status-top-bar { background: var(--panel-bg); padding: 15px; border-radius: 10px; border: 1px solid #222e45; display: flex; justify-content: space-around; align-items: center; font-size: 14px; }
+        .status-pill { background: #1f293d; padding: 6px 12px; border-radius: 20px; border: 1px solid #36496e; }
+
+        /* 주기율표 물리 그리드 아레나 보드 */
+        .periodic-table-arena-canvas { background: #0e131f; border-radius: 12px; border: 1px solid #1f293d; padding: 25px; position: relative; display: grid; grid-template-columns: repeat(18, 1fr); grid-template-rows: repeat(4, 1fr); gap: 6px; align-items: center; justify-content: center; min-height: 380px; }
+        
+        .element-tile-node { background: rgba(30, 41, 59, 0.4); border: 1px solid #26354a; border-radius: 6px; position: relative; height: 75px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1); filter: grayscale(100%); opacity: 0.3; }
+        .element-tile-node .atomic-number { font-size: 10px; color: #6272a4; text-align: left; }
+        .element-tile-node .atomic-symbol { font-size: 18px; font-weight: 800; text-align: center; color: #fff; margin-top: -2px; }
+        .element-tile-node .atomic-name { font-size: 9px; text-align: center; color: #a2b4c7; }
+        
+        /* 매칭 성공 시 특수 발광 활성화 상태 유도 클래스 */
+        .element-tile-node.activated-fused { filter: grayscale(0%); opacity: 1; transform: scale(1.05); box-shadow: 0 0 15px rgba(0,243,150,0.5); border-color: #00ff96; background: radial-gradient(circle, #132f27 0%, #061510 100%); }
+
+        /* 실시간 다른 플레이어들의 가상 레이아웃 영역 */
+        .opponents-deck-horizon { display: flex; justify-content: center; gap: 15px; background: rgba(20, 25, 35, 0.6); padding: 12px; border-radius: 10px; border: 1px solid #1f293d; }
+        .opponent-cluster-card { background: #161b26; border: 1px solid #253147; border-radius: 8px; padding: 10px; width: 220px; position: relative; text-align: left; transition: 0.3s; }
+        .opponent-cluster-card.targeted-active-turn { border-color: #ff9800; box-shadow: 0 0 12px rgba(255,152,0,0.4); background: #221c16; }
+        .opponent-card-back-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+        
+        /* 훔칠 수 있는 상대방 가상 뒷면 카드 애니메이션 객체 */
+        .robable-card-back-stub { width: 20px; height: 30px; background: linear-gradient(135deg, #304368, #18233c); border: 1px solid #48639e; border-radius: 3px; cursor: pointer; transition: all 0.2s cubic-bezier(0.075, 0.82, 0.165, 1); position: relative; }
+        .robable-card-back-stub:hover { transform: translateY(-8px) scale(1.2); background: linear-gradient(135deg, #ff9800, #ff5722); border-color: #fff; box-shadow: 0 4px 10px rgba(255,152,0,0.5); z-index: 10; }
+
+        /* 하단 내 인터랙티브 정밀 제어 카드 데크 */
+        .my-private-deck-anchor { background: linear-gradient(180deg, #161c28 0%, #0d121c 100%); border-top: 3px solid var(--accent-blue); border-radius: 12px 12px 0 0; padding: 20px; min-height: 180px; position: relative; }
+        .deck-scroller-flow { display: flex; justify-content: center; gap: 10px; overflow-x: auto; padding: 10px 0; }
+        
+        /* 내 실제 정밀 피지컬 카드 */
+        .physics-card-entity { width: var(--card-width); height: var(--card-height); background: #ffffff; color: #0a0c10; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; font-weight: bold; position: relative; box-shadow: 0 6px 12px rgba(0,0,0,0.5); border-width: 4px; border-style: solid; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: bottom center; }
+        .physics-card-entity:hover { transform: translateY(-25px) scale(1.1) rotate(2deg); z-index: 50; box-shadow: 0 15px 30px rgba(0,0,0,0.7); }
+        
+        .physics-card-entity.ko { border-color: var(--accent-blue); background: linear-gradient(135deg, #ffffff 0%, #e6f0fa 100%); }
+        .physics-card-entity.en { border-color: var(--accent-orange); background: linear-gradient(135deg, #ffffff 0%, #fff4e6 100%); }
+        .physics-card-entity.joker { border-color: var(--accent-joker); background: linear-gradient(135deg, #ffe3ee 0%, #ffccd0 100%); animation: pulseJoker 1.5s infinite alternate; }
+        
+        .card-top-num { font-size: 12px; color: #444; }
+        .card-mid-symbol { font-size: 26px; text-align: center; font-weight: 900; margin: 4px 0; letter-spacing: -1px; }
+        .card-bot-name { font-size: 10px; text-align: center; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* 레이어 팝업 오버레이 */
+        .screen-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5,7,12,0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: 0.4s ease-in-out; }
+        .screen-modal-overlay.visible-show { opacity: 1; pointer-events: auto; }
+        .modal-content-frame { background: var(--panel-bg); border: 2px solid #222e45; border-radius: 16px; padding: 40px; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+
+        /* 광고 인라인 홀더 */
+        .adsense-dynamic-slot { background: rgba(34, 46, 69, 0.3); border: 1px dashed #304263; color: #62769c; font-size: 11px; padding: 10px; text-align: center; border-radius: 6px; margin: 8px 0; }
+
+        @keyframes pulseJoker {
+            0% { box-shadow: 0 0 10px rgba(255, 0, 122, 0.5); }
+            100% { box-shadow: 0 0 25px rgba(255, 0, 122, 0.9); transform: scale(1.03); }
+        }
+
+        /* 훔치기 실시간 비행 물리학 애니메이션 레이어 */
+        .flying-card-particle { position: fixed; width: var(--card-width); height: var(--card-height); background: linear-gradient(135deg, #304368, #18233c); border: 2px solid #fff; border-radius: 8px; z-index: 99999; transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); pointer-events: none; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="ads-banner">광고 영역 (애드센스 승인 후 코드가 삽입됩니다)</div>
 
-        <div id="lobbyScreen" class="screen active">
-            <h2>🧪 주기율표 매칭 게임</h2>
-            <p>1~50번 원소 기호를 맞춰 카드를 털어내세요!</p>
-            <input type="text" id="nicknameInput" placeholder="닉네임 입력" maxlength="8"><br>
-            <button onclick="joinGame()">게임방 입장</button>
-            
-            <div class="player-list">
-                <h3>현재 대기열</h3>
-                <div id="waitingPlayers">대기 중인 플레이어가 없습니다.</div>
-            </div>
-            <button onclick="addAI()" style="background:#555;">🤖 AI 컴퓨터 추가</button><br>
-            <button onclick="startGame()" style="background:#ff5722;">게임 시작! (최소 2인)</button>
-        </div>
-
-        <div id="gameScreen" class="screen">
-            <h3 id="turnIndicator" style="color: #4CAF50;">누구의 턴인가요?</h3>
-            <div id="opponentsArea"></div>
-            
-            <div class="log-box" id="logBox"></div>
-            
-            <button id="drawBtn" onclick="drawCard()" style="display:none; background:#ff9800; font-size:18px; padding:15px;">👉 이전 사람 카드 1장 뽑기</button>
-            
-            <h4>내 카드 목록</h4>
-            <div id="myCards" class="card-container"></div>
-        </div>
-
-        <div id="resultScreen" class="screen">
-            <h2>🏆 게임 종료</h2>
-            <h1 id="winnerText" style="color:#4CAF50;"></h1>
-            <h3 id="loserText" style="color:#e91e63;"></h3>
-            <button onclick="location.reload()" style="background:#2196F3;">처음으로 돌아가기</button>
-        </div>
+    <div class="app-wrapper">
         
-        <div class="ads-banner">광고 영역 (애드센스 승인 후 코드가 삽입됩니다)</div>
+        <aside class="control-side-panel">
+            <div class="top-meta-deck">
+                <div class="panel-header">
+                    <h2>🧪 QUANTUM PERIODIC</h2>
+                    <p>초정밀 원소 결합 실시간 아레나</p>
+                </div>
+                
+                <div class="adsense-dynamic-slot">ADVERTISEMENT BANNER</div>
+
+                <div class="interactive-form" id="lobbyControls">
+                    <input type="text" id="playerNickname" placeholder="에이전트 닉네임 명명" value="">
+                    <button class="btn-action" onclick="createRoomInstance()">가상 배틀룸 개설</button>
+                    <input type="text" id="targetRoomId" placeholder="입장할 방 코드 입력(6자리)">
+                    <button class="btn-action" style="background: linear-gradient(135deg, #238636, #2ea44f);" onclick="joinRoomInstance()">배틀룸 원격 접속</button>
+                </div>
+
+                <div class="game-manager-controls" id="hostControls" style="display:none; margin-top:15px; border-top:1px solid #222e45; padding-top:15px;">
+                    <button class="btn-action" style="background:#4c1d95;" onclick="injectAIRobot()">🤖 AI 연산 모듈 강제 매칭</button>
+                    <button class="btn-action" style="background:linear-gradient(135deg, #ff5722, #ff9800);" onclick="signalStartGame()">방장 권한 레이스 시작</button>
+                </div>
+            </div>
+
+            <div class="bottom-terminal-deck">
+                <h4>NETWORK LOG STREAM</h4>
+                <div class="terminal-log-flow" id="logTerminal"></div>
+            </div>
+        </aside>
+
+        <main class="main-board-viewport">
+            
+            <div class="room-status-top-bar">
+                <div class="status-pill">ROOM ID: <span id="displayRoomId" style="color:var(--accent-orange); font-weight:bold;">STANDBY</span></div>
+                <div class="status-pill" id="displayTurnOwner" style="color:#00ff96;">접속 대기 중</div>
+                <div class="status-pill">ACTIVE PLAYERS: <span id="displayPlayerCount">0</span>/5</div>
+            </div>
+
+            <div class="periodic-table-arena-canvas" id="periodicTableBoard">
+                </div>
+
+            <div class="opponents-deck-horizon" id="opponentsWrapper">
+                </div>
+
+            <section class="my-private-deck-anchor">
+                <div class="adsense-dynamic-slot" style="position:absolute; right:15px; top:5px; width:200px; margin:0;">AD BANNER LOWER</div>
+                <h3 style="font-size:14px; margin-bottom:10px; color:#7a8c9e;">MY PRIVATE HANDS (<span id="myCardCount">0</span>)</h3>
+                <div class="deck-scroller-flow" id="myPrivateCardsContainer">
+                    </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div class="screen-modal-overlay" id="gameOverModal">
+        <div class="modal-content-frame">
+            <h1 style="color:var(--accent-orange); font-size:36px; margin-bottom:15px;">MATCH SET OVER</h1>
+            <h2 id="winnerAnnouncement" style="color:#fff; margin-bottom:10px;">-</h2>
+            <p id="loserAnnouncement" style="color:var(--accent-joker); font-size:18px; font-weight:bold; margin-bottom:25px;">-</p>
+            <button class="btn-action" onclick="location.reload()">새로운 매치 메이킹 리셋</button>
+        </div>
     </div>
 
     <script>
         const socket = io();
-        let myName = "";
+        let globalMyId = null;
+        let globalRoomId = null;
+        let localCachedState = null;
 
-        function joinGame() {
-            const input = document.getElementById('nicknameInput').value.trim();
-            if(!input) return alert("닉네임을 입력하세요.");
-            myName = input;
-            socket.emit('joinGame', myName);
-            document.getElementById('nicknameInput').disabled = true;
-        }
+        // 원소 그리드 드로잉을 위한 주기율표 매핑 배치 레이아웃 파서 규칙 정의
+        const ELEMENT_MAP_RULES = [
+            {num:1, r:1, c:1}, {num:2, r:1, c:18},
+            {num:3, r:2, c:1}, {num:4, r:2, c:2}, {num:5, r:2, c:13}, {num:6, r:2, c:14}, {num:7, r:2, c:15}, {num:8, r:2, c:16}, {num:9, r:2, c:17}, {num:10, r:2, c:18},
+            {num:11, r:3, c:1}, {num:12, r:3, c:2}, {num:13, r:3, c:13}, {num:14, r:3, c:14}, {num:15, r:3, c:15}, {num:16, r:3, c:16}, {num:17, r:3, c:17}, {num:18, r:3, c:18},
+            {num:19, r:4, c:1}, {num:20, r:4, c:2}, {num:21, r:4, c:3}, {num:22, r:4, c:4}, {num:23, r:4, c:5}, {num:24, r:4, c:6}, {num:25, r:4, c:7}
+        ];
 
-        function addAI() {
-            socket.emit('addAI');
-        }
-
-        function startGame() {
-            socket.emit('startGame');
-        }
-
-        function drawCard() {
-            socket.emit('drawCard');
-        }
-
-        socket.on('updateState', (state) => {
-            const listDiv = document.getElementById('waitingPlayers');
-            if(state.players.length > 0) {
-                listDiv.innerHTML = state.players.map(p => `${p.name} ${p.isAI ? '🤖' : '👤'}`).join('<br>');
-            }
-        });
-
-        socket.on('gameStarted', (state) => {
-            document.getElementById('lobbyScreen').classList.remove('active');
-            document.getElementById('gameScreen').classList.add('active');
-            updateGameBoard(state);
-        });
-
-        socket.on('updateState', (state) => {
-            if(state.gameStarted) {
-                updateGameBoard(state);
-            }
-        });
-
-        socket.on('log', (msg) => {
-            const logBox = document.getElementById('logBox');
-            logBox.innerHTML += `<div>${msg}</div>`;
-            logBox.scrollTop = logBox.scrollHeight;
-        });
-
-        socket.on('gameOver', (data) => {
-            document.getElementById('gameScreen').classList.remove('active');
-            document.getElementById('resultScreen').classList.add('active');
-            document.getElementById('winnerText').innerText = `🥇 승리자: ${data.winner}`;
-            document.getElementById('loserText').innerText = `💀 꼴찌(조커): ${data.loser}`;
-        });
-
-        function updateGameBoard(state) {
-            const me = state.players.find(p => p.id === socket.id);
-            const currentTurnPlayer = state.players[state.turnIndex];
+        // 초기 주기율표 아레나 보드 시각 구조 정렬화 실행
+        function renderBasePeriodicTableStructure() {
+            const board = document.getElementById('periodicTableBoard');
+            board.innerHTML = '';
             
-            // 턴 표시
-            const turnIndicator = document.getElementById('turnIndicator');
-            if (currentTurnPlayer.id === socket.id) {
-                turnIndicator.innerText = "🚨 내 턴입니다! 아래 버튼을 눌러 카드를 뽑으세요.";
-                document.getElementById('drawBtn').style.display = "inline-block";
-            } else {
-                turnIndicator.innerText = `⏳ ${currentTurnPlayer.name}의 턴 진행 중...`;
-                document.getElementById('drawBtn').style.display = "none";
-            }
+            // 25번까지의 원소 정보 데이터 임시 맵 구축
+            const symbolMapping = {
+                1:"H", 2:"He", 3:"Li", 4:"Be", 5:"B", 6:"C", 7:"N", 8:"O", 9:"F", 10:"Ne",
+                11:"Na", 12:"Mg", 13:"Al", 14:"Si", 15:"P", 16:"S", 17:"Cl", 18:"Ar",
+                19:"K", 20:"Ca", 21:"Sc", 22:"Ti", 23:"V", 24:"Cr", 25:"Mn"
+            };
+            const nameMapping = {
+                1:"수소", 2:"헬륨", 3:"리튬", 4:"베릴륨", 5:"붕소", 6:"탄소", 7:"질소", 8:"산소", 9:"플루오린", 10:"네온",
+                11:"나트륨", 12:"마그네슘", 13:"알루미늄", 14:"규소", 15:"인", 16:"황", 17:"염소", 18:"아르곤",
+                19:"칼륨", 20:"칼슘", 21:"스칸듐", 22:"티타늄", 23:"바나듐", 24:"크롬", 25:"망가니즈"
+            };
 
-            // 내 카드 출력
-            const myCardsDiv = document.getElementById('myCards');
-            if (me && me.cards) {
-                myCardsDiv.innerHTML = me.cards.map(c => `
-                    <div class="card ${c.lang}">
-                        ${c.name}<br><small>${c.num === 999 ? '' : c.num + '번'}</small>
-                    </div>
-                `).join('');
-            }
-
-            // 상대방 카드 현황 출력
-            const oppsDiv = document.getElementById('opponentsArea');
-            oppsDiv.innerHTML = state.players.map(p => `
-                <div style="margin:5px; padding:5px; background:${p.id === currentTurnPlayer.id ? '#333' : 'transparent'}; border-radius:5px;">
-                    ${p.name}: <b>${p.cards.length}장</b> 보유
-                </div>
-            `).join('');
+            ELEMENT_MAP_RULES.forEach(rule => {
+                const tile = document.createElement('div');
+                tile.className = 'element-tile-node';
+                tile.id = `tile_element_${rule.num}`;
+                tile.style.gridRow = rule.r;
+                tile.style.gridColumn = rule.c;
+                
+                tile.innerHTML = `
+                    <span class="atomic-number">${rule.num}</span>
+                    <span class="atomic-symbol">${symbolMapping[rule.num]}</span>
+                    <span class="atomic-name">${nameMapping[rule.num]}</span>
+                `;
+                board.appendChild(tile);
+            });
         }
+
+        function createRoomInstance() {
+            socket.emit('req_create_room', { maxPlayers: 5 });
+        }
+
+        function joinRoomInstance() {
+            const nickname = document.getElementById('playerNickname').value.trim();
+            const rId = document.getElementById('targetRoomId').value.trim().toUpperCase();
+            if(!nickname || !rId) return alert("닉네임과 접속 코드 6자리를 올바르게 기입하세요.");
+            
+            socket.emit('req_join_room', { roomId: rId, name: nickname });
+        }
+
+        function injectAIRobot() {
+            socket.emit('req_add_ai');
+        }
+
+        function signalStartGame() {
+            socket.emit('req_start_game');
+        }
+
+        function triggerTargetRobbery(victimId, cardId, domElement) {
+            if(!localCachedState || !localCachedState.gameStarted) return;
+            
+            const myTurnUser = localCachedState.players[localCachedState.turnIndex];
+            if(myTurnUser.id !== globalMyId) return; // 본인 턴 검증
+
+            // 클릭 이벤트 좌표 및 타겟 훔치기 소켓 바인딩 통신 요청
+            const rect = domElement.getBoundingClientRect();
+            socket.emit('req_rob_card', { victimId, cardId });
+        }
+
+        socket.on('res_create_room', (data) => {
+            document.getElementById('targetRoomId').value = data.roomId;
+            const term = document.getElementById('logTerminal');
+            term.innerHTML += `<div>가상 배틀 서버 할당 성공: ${data.roomId}</div>`;
+        });
+
+        socket.on('login_success', (data) => {
+            globalMyId = data.myId;
+            globalRoomId = data.roomId;
+            document.getElementById('displayRoomId').innerText = globalRoomId;
+            document.getElementById('lobbyControls').style.display = 'none';
+            document.getElementById('hostControls').style.display = 'block';
+        });
+
+        socket.on('sys_log', (entry) => {
+            const term = document.getElementById('logTerminal');
+            term.innerHTML += `<div>${entry}</div>`;
+            term.scrollTop = term.scrollHeight;
+        });
+
+        socket.on('err_toast', (msg) => {
+            alert(`[보안 경고] ${msg}`);
+        });
+
+        socket.on('room_state_update', (state) => {
+            localCachedState = state;
+            document.getElementById('displayPlayerCount').innerText = state.players.length;
+            
+            const turnUser = state.players[state.turnIndex];
+            const indicator = document.getElementById('displayTurnOwner');
+            
+            if(turnUser) {
+                if(turnUser.id === globalMyId) {
+                    indicator.innerText = "🚨 내 차례입니다! 왼쪽 사람 카드를 뽑으세요.";
+                    indicator.style.color = "#ff8a00";
+                } else {
+                    indicator.innerText = `⏳ ${turnUser.name} 연산 중...`;
+                    indicator.style.color = "#00ff96";
+                }
+            }
+
+            // 주기율표 보드판 물리 매칭 동기화 동적 스캔 연출
+            ELEMENT_MAP_RULES.forEach(rule => {
+                const targetTile = document.getElementById(`tile_element_${rule.num}`);
+                if(targetTile) {
+                    if(state.matchedElements.includes(rule.num)) {
+                        targetTile.classList.add('activated-fused');
+                    } else {
+                        targetTile.classList.remove('activated-fused');
+                    }
+                }
+            });
+
+            // 상대방 가상 클러스터 덱 렌더링 파트
+            const oppsWrapper = document.getElementById('opponentsWrapper');
+            oppsWrapper.innerHTML = '';
+
+            // 내 기준 바로 직전 순서 유저 인덱스 연산 알고리즘
+            let myIndex = state.players.findIndex(p => p.id === globalMyId);
+            let expectedVictimIdx = -1;
+            if (myIndex !== -1 && state.gameStarted) {
+                expectedVictimIdx = (state.turnIndex - 1 + state.players.length) % state.players.length;
+                while (state.players[expectedVictimIdx].cards.length === 0 && expectedVictimIdx !== state.turnIndex) {
+                    expectedVictimIdx = (expectedVictimIdx - 1 + state.players.length) % state.players.length;
+                }
+            }
+
+            state.players.forEach((p, idx) => {
+                if(p.id === globalMyId) return; // 본인 제외 상대만 그리기
+
+                const cluster = document.createElement('div');
+                cluster.className = `opponent-cluster-card ${idx === state.turnIndex ? 'targeted-active-turn' : ''}`;
+                cluster.id = `cluster_node_${p.id}`;
+                
+                let isRobableTarget = (idx === expectedVictimIdx && state.players[state.turnIndex].id === globalMyId);
+
+                let cardBacksHtml = '';
+                for(let c=0; c < p.cardCount; c++) {
+                    if(isRobableTarget) {
+                        cardBacksHtml += `<div class="robable-card-back-stub" onclick="triggerTargetRobbery('${p.id}', 'random', this)" title="지목 강탈하기"></div>`;
+                    } else {
+                        cardBacksHtml += `<div class="robable-card-back-stub" style="cursor:not-allowed; opacity:0.6;"></div>`;
+                    }
+                }
+
+                cluster.innerHTML = `
+                    <div style="font-weight:bold; font-size:13px; color:#fff;">${p.name} ${p.isAI ? '🤖':'👤'}</div>
+                    <div style="font-size:11px; color:#7a8c9e;">보유 카드: ${p.cardCount}장</div>
+                    <div class="opponent-card-back-grid">${p.cardCount === 0 ? '<span style="color:#666; font-size:11px;">패 소진 완료</span>' : cardBacksHtml}</div>
+                `;
+                oppsWrapper.appendChild(cluster);
+            });
+        });
+
+        // 보안 채널을 통한 내 실제 카드 렌더링 결합
+        socket.on('personal_cards_sync', (cards) => {
+            document.getElementById('myCardCount').innerText = cards.length;
+            const container = document.getElementById('myPrivateCardsContainer');
+            container.innerHTML = '';
+
+            cards.forEach(c => {
+                const cardNode = document.createElement('div');
+                cardNode.className = `physics-card-entity ${c.lang}`;
+                cardNode.id = `personal_node_${c.id}`;
+                
+                cardNode.innerHTML = `
+                    <div class="card-top-num">${c.num === 999 ? 'JK' : c.num}</div>
+                    <div class="card-mid-symbol">${c.symbol}</div>
+                    <div class="card-bot-name">${c.name}</div>
+                `;
+                container.appendChild(cardNode);
+            });
+        });
+
+        // 실시간 카드 유도 비행 물리학 애니메이션 트리거 효과 파서
+        socket.on('animation_rob_trigger', (data) => {
+            const thiefNode = document.getElementById(`cluster_node_${data.thiefId}`) || document.querySelector('.my-private-deck-anchor');
+            const victimNode = document.getElementById(`cluster_node_${data.victimId}`) || document.querySelector('.my-private-deck-anchor');
+
+            if(!thiefNode || !victimNode) return;
+
+            const vRect = victimNode.getBoundingClientRect();
+            const tRect = thiefNode.getBoundingClientRect();
+
+            const particle = document.createElement('div');
+            particle.className = 'flying-card-particle';
+            particle.style.left = `${vRect.left + (vRect.width/2) - 40}px`;
+            particle.style.top = `${vRect.top + (vRect.height/2) - 57}px`;
+            document.body.appendChild(particle);
+
+            // 하드웨어 가속 강제 브라우저 리플로우 유도 인터벌
+            setTimeout(() => {
+                particle.style.transform = `scale(0.4) rotate(180deg)`;
+                particle.style.left = `${tRect.left + (tRect.width/2) - 40}px`;
+                particle.style.top = `${tRect.top + (tRect.height/2) - 57}px`;
+            }, 50);
+
+            setTimeout(() => {
+                particle.remove();
+            }, 850);
+        });
+
+        socket.on('game_over_broadcast', (data) => {
+            const modal = document.getElementById('gameOverModal');
+            document.getElementById('winnerAnnouncement').innerText = `🥇최종 대승리자: ${data.winner}`;
+            document.getElementById('loserAnnouncement').innerText = `💀 최종 패배자 (조커 보유): ${data.loser}`;
+            modal.classList.add('visible-show');
+        });
+
+        // 최초 로딩 시 주기율표 베이스 그리기 자동 발동
+        window.addEventListener('DOMContentLoaded', () => {
+            renderBasePeriodicTableStructure();
+        });
     </script>
 </body>
 </html>
