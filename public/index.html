@@ -22,7 +22,6 @@
 
         .app-wrapper { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 30px); }
         
-        /* 왼쪽 사이드 메뉴 및 실시간 컨트롤 패널 */
         .control-side-panel { background: var(--panel-bg); border-radius: 12px; border: 1px solid #222e45; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
         .panel-header h2 { font-size: 20px; color: #fff; text-shadow: var(--text-glow); margin-bottom: 5px; text-align: center; }
         .panel-header p { font-size: 12px; color: #7a8c9e; text-align: center; margin-bottom: 20px; }
@@ -34,17 +33,13 @@
         .btn-action:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,112,243,0.4); }
         .btn-action:active { transform: translateY(0); }
         
-        /* 실시간 시스템 로그 터미널 창 */
         .terminal-log-flow { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #58a6ff; height: 180px; overflow-y: auto; margin-top: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
 
-        /* 메인 대형 디스플레이 존 */
         .main-board-viewport { display: grid; grid-template-rows: auto 1fr auto; gap: 15px; }
         
-        /* 룸 상태 탑 바 */
         .room-status-top-bar { background: var(--panel-bg); padding: 15px; border-radius: 10px; border: 1px solid #222e45; display: flex; justify-content: space-around; align-items: center; font-size: 14px; }
         .status-pill { background: #1f293d; padding: 6px 12px; border-radius: 20px; border: 1px solid #36496e; }
 
-        /* 주기율표 물리 그리드 아레나 보드 */
         .periodic-table-arena-canvas { background: #0e131f; border-radius: 12px; border: 1px solid #1f293d; padding: 25px; position: relative; display: grid; grid-template-columns: repeat(18, 1fr); grid-template-rows: repeat(4, 1fr); gap: 6px; align-items: center; justify-content: center; min-height: 380px; }
         
         .element-tile-node { background: rgba(30, 41, 59, 0.4); border: 1px solid #26354a; border-radius: 6px; position: relative; height: 75px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1); filter: grayscale(100%); opacity: 0.3; }
@@ -52,24 +47,19 @@
         .element-tile-node .atomic-symbol { font-size: 18px; font-weight: 800; text-align: center; color: #fff; margin-top: -2px; }
         .element-tile-node .atomic-name { font-size: 9px; text-align: center; color: #a2b4c7; }
         
-        /* 매칭 성공 시 특수 발광 활성화 상태 유도 클래스 */
         .element-tile-node.activated-fused { filter: grayscale(0%); opacity: 1; transform: scale(1.05); box-shadow: 0 0 15px rgba(0,243,150,0.5); border-color: #00ff96; background: radial-gradient(circle, #132f27 0%, #061510 100%); }
 
-        /* 실시간 다른 플레이어들의 가상 레이아웃 영역 */
         .opponents-deck-horizon { display: flex; justify-content: center; gap: 15px; background: rgba(20, 25, 35, 0.6); padding: 12px; border-radius: 10px; border: 1px solid #1f293d; min-height: 100px; }
         .opponent-cluster-card { background: #161b26; border: 1px solid #253147; border-radius: 8px; padding: 10px; width: 220px; position: relative; text-align: left; transition: 0.3s; }
         .opponent-cluster-card.targeted-active-turn { border-color: #ff9800; box-shadow: 0 0 12px rgba(255,152,0,0.4); background: #221c16; }
         .opponent-card-back-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
         
-        /* 훔칠 수 있는 상대방 가상 뒷면 카드 애니메이션 객체 */
         .robable-card-back-stub { width: 20px; height: 30px; background: linear-gradient(135deg, #304368, #18233c); border: 1px solid #48639e; border-radius: 3px; cursor: pointer; transition: all 0.2s cubic-bezier(0.075, 0.82, 0.165, 1); position: relative; }
         .robable-card-back-stub:hover { transform: translateY(-8px) scale(1.2); background: linear-gradient(135deg, #ff9800, #ff5722); border-color: #fff; box-shadow: 0 4px 10px rgba(255,152,0,0.5); z-index: 10; }
 
-        /* 하단 내 인터랙티브 정밀 제어 카드 데크 */
         .my-private-deck-anchor { background: linear-gradient(180deg, #161c28 0%, #0d121c 100%); border-top: 3px solid var(--accent-blue); border-radius: 12px 12px 0 0; padding: 20px; min-height: 180px; position: relative; }
         .deck-scroller-flow { display: flex; justify-content: center; gap: 10px; overflow-x: auto; padding: 10px 0; }
         
-        /* 내 실제 정밀 피지컬 카드 */
         .physics-card-entity { width: var(--card-width); height: var(--card-height); background: #ffffff; color: #0a0c10; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; font-weight: bold; position: relative; box-shadow: 0 6px 12px rgba(0,0,0,0.5); border-width: 4px; border-style: solid; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: bottom center; }
         .physics-card-entity:hover { transform: translateY(-25px) scale(1.1) rotate(2deg); z-index: 50; box-shadow: 0 15px 30px rgba(0,0,0,0.7); }
         
@@ -81,12 +71,16 @@
         .card-mid-symbol { font-size: 26px; text-align: center; font-weight: 900; margin: 4px 0; letter-spacing: -1px; }
         .card-bot-name { font-size: 10px; text-align: center; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* 레이어 팝업 오버레이 */
         .screen-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5,7,12,0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: 0.4s ease-in-out; }
         .screen-modal-overlay.visible-show { opacity: 1; pointer-events: auto; }
         .modal-content-frame { background: var(--panel-bg); border: 2px solid #222e45; border-radius: 16px; padding: 40px; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
 
-        /* 광고 인라인 홀더 */
+        /* 🚨 실시간 합성 스펙타클 중앙 전광판 스타일 추가 */
+        .fusion-alert-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5); background: linear-gradient(135deg, rgba(19, 47, 39, 0.95) 0%, rgba(6, 21, 16, 0.95) 100%); border: 3px solid #00ff96; border-radius: 20px; padding: 30px 60px; text-align: center; z-index: 100000; box-shadow: 0 0 50px rgba(0, 253, 150, 0.8); opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .fusion-alert-overlay.triggered-popup { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .fusion-title { font-size: 32px; font-weight: 900; color: #00ff96; text-shadow: 0 0 20px rgba(0, 253, 150, 0.6); margin-bottom: 5px; letter-spacing: 2px; }
+        .fusion-body { font-size: 20px; color: #fff; font-weight: bold; }
+
         .adsense-dynamic-slot { background: rgba(34, 46, 69, 0.3); border: 1px dashed #304263; color: #62769c; font-size: 11px; padding: 10px; text-align: center; border-radius: 6px; margin: 8px 0; }
 
         @keyframes pulseJoker {
@@ -94,14 +88,17 @@
             100% { box-shadow: 0 0 25px rgba(255, 0, 122, 0.9); transform: scale(1.03); }
         }
 
-        /* 훔치기 실시간 비행 물리학 애니메이션 레이어 */
         .flying-card-particle { position: fixed; width: var(--card-width); height: var(--card-height); background: linear-gradient(135deg, #304368, #18233c); border: 2px solid #fff; border-radius: 8px; z-index: 99999; transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); pointer-events: none; }
     </style>
 </head>
 <body>
 
+    <div class="fusion-alert-overlay" id="globalFusionAlert">
+        <div class="fusion-title">✨ ATOMIC FUSION ✨</div>
+        <div class="fusion-body" id="globalFusionBody">플레이어 결합 성공</div>
+    </div>
+
     <div class="app-wrapper">
-        
         <aside class="control-side-panel">
             <div class="top-meta-deck">
                 <div class="panel-header">
@@ -131,7 +128,6 @@
         </aside>
 
         <main class="main-board-viewport">
-            
             <div class="room-status-top-bar">
                 <div class="status-pill">ROOM ID: <span id="displayRoomId" style="color:var(--accent-orange); font-weight:bold;">STANDBY</span></div>
                 <div class="status-pill" id="displayTurnOwner" style="color:#00ff96;">접속 대기 중</div>
@@ -139,7 +135,6 @@
             </div>
 
             <div class="periodic-table-arena-canvas" id="periodicTableBoard"></div>
-
             <div class="opponents-deck-horizon" id="opponentsWrapper"></div>
 
             <section class="my-private-deck-anchor">
@@ -147,7 +142,6 @@
                 <h3 style="font-size:14px; margin-bottom:10px; color:#7a8c9e;">MY PRIVATE HANDS (<span id="myCardCount">0</span>)</h3>
                 <div class="deck-scroller-flow" id="myPrivateCardsContainer"></div>
             </section>
-
         </main>
     </div>
 
@@ -166,6 +160,17 @@
         let globalRoomId = null;
         let localCachedState = null;
 
+        const symbolMapping = {
+            1:"H", 2:"He", 3:"Li", 4:"Be", 5:"B", 6:"C", 7:"N", 8:"O", 9:"F", 10:"Ne",
+            11:"Na", 12:"Mg", 13:"Al", 14:"Si", 15:"P", 16:"S", 17:"Cl", 18:"Ar",
+            19:"K", 20:"Ca", 21:"Sc", 22:"Ti", 23:"V", 24:"Cr", 25:"Mn"
+        };
+        const nameMapping = {
+            1:"수소", 2:"헬륨", 3:"리튬", 4:"베릴륨", 5:"붕소", 6:"탄소", 7:"질소", 8:"산소", 9:"플루오린", 10:"네온",
+            11:"나트륨", 12:"마그네슘", 13:"알루미늄", 14:"규소", 15:"인", 16:"황", 17:"염소", 18:"아르곤",
+            19:"칼륨", 20:"칼슘", 21:"스칸듐", 22:"티타늄", 23:"바나듐", 24:"크롬", 25:"망가니즈"
+        };
+
         const ELEMENT_MAP_RULES = [
             {num:1, r:1, c:1}, {num:2, r:1, c:18},
             {num:3, r:2, c:1}, {num:4, r:2, c:2}, {num:5, r:2, c:13}, {num:6, r:2, c:14}, {num:7, r:2, c:15}, {num:8, r:2, c:16}, {num:9, r:2, c:17}, {num:10, r:2, c:18},
@@ -177,17 +182,6 @@
             const board = document.getElementById('periodicTableBoard');
             board.innerHTML = '';
             
-            const symbolMapping = {
-                1:"H", 2:"He", 3:"Li", 4:"Be", 5:"B", 6:"C", 7:"N", 8:"O", 9:"F", 10:"Ne",
-                11:"Na", 12:"Mg", 13:"Al", 14:"Si", 15:"P", 16:"S", 17:"Cl", 18:"Ar",
-                19:"K", 20:"Ca", 21:"Sc", 22:"Ti", 23:"V", 24:"Cr", 25:"Mn"
-            };
-            const nameMapping = {
-                1:"수소", 2:"헬륨", 3:"리튬", 4:"베릴륨", 5:"붕소", 6:"탄소", 7:"질소", 8:"산소", 9:"플루오린", 10:"네온",
-                11:"나트륨", 12:"마그네슘", 13:"알루미늄", 14:"규소", 15:"인", 16:"황", 17:"염소", 18:"아르곤",
-                19:"칼륨", 20:"칼슘", 21:"스칸듐", 22:"티타늄", 23:"바나듐", 24:"크롬", 25:"망가니즈"
-            };
-
             ELEMENT_MAP_RULES.forEach(rule => {
                 const tile = document.createElement('div');
                 tile.className = 'element-tile-node';
@@ -362,6 +356,25 @@
 
             setTimeout(() => {
                 particle.remove();
+                
+                // 🚨 실시간 합성 여부 확인 및 글로벌 알림 오버레이 활성화 (1초간 작동)
+                if(data.isMatched && data.elementNum) {
+                    const elSymbol = symbolMapping[data.elementNum];
+                    const elName = nameMapping[data.elementNum];
+                    const thiefObj = localCachedState.players.find(p => p.id === data.thiefId);
+                    const thiefName = thiefObj ? thiefObj.name : "플레이어";
+
+                    const alertOverlay = document.getElementById('globalFusionAlert');
+                    const alertBody = document.getElementById('globalFusionBody');
+                    
+                    alertBody.innerHTML = `<span style="color:#ff8a00;">${thiefName}</span> 결합 완료!<br><span style="font-size:28px; color:#fff;">[${data.elementNum}번 ${elSymbol} - ${elName}]</span>`;
+                    
+                    alertOverlay.classList.add('triggered-popup');
+                    
+                    setTimeout(() => {
+                        alertOverlay.classList.remove('triggered-popup');
+                    }, 1000); // 1초 뒤 완전히 투명화 소거
+                }
             }, 850);
         });
 
