@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxxxxxxxxxxx" crossorigin="anonymous"></script>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>초정밀 3D 주기율표 매칭 네트워크 배틀 아레나</title>
     <script src="/socket.io/socket.io.js"></script>
@@ -75,7 +78,6 @@
         .screen-modal-overlay.visible-show { opacity: 1; pointer-events: auto; }
         .modal-content-frame { background: var(--panel-bg); border: 2px solid #222e45; border-radius: 16px; padding: 40px; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
 
-        /* 🚨 실시간 합성 스펙타클 중앙 전광판 스타일 추가 */
         .fusion-alert-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5); background: linear-gradient(135deg, rgba(19, 47, 39, 0.95) 0%, rgba(6, 21, 16, 0.95) 100%); border: 3px solid #00ff96; border-radius: 20px; padding: 30px 60px; text-align: center; z-index: 100000; box-shadow: 0 0 50px rgba(0, 253, 150, 0.8); opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .fusion-alert-overlay.triggered-popup { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         .fusion-title { font-size: 32px; font-weight: 900; color: #00ff96; text-shadow: 0 0 20px rgba(0, 253, 150, 0.6); margin-bottom: 5px; letter-spacing: 2px; }
@@ -357,7 +359,6 @@
             setTimeout(() => {
                 particle.remove();
                 
-                // 🚨 실시간 합성 여부 확인 및 글로벌 알림 오버레이 활성화 (1초간 작동)
                 if(data.isMatched && data.elementNum) {
                     const elSymbol = symbolMapping[data.elementNum];
                     const elName = nameMapping[data.elementNum];
@@ -373,7 +374,7 @@
                     
                     setTimeout(() => {
                         alertOverlay.classList.remove('triggered-popup');
-                    }, 1000); // 1초 뒤 완전히 투명화 소거
+                    }, 1000);
                 }
             }, 850);
         });
