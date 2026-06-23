@@ -1,7 +1,7 @@
 /**
- * Periodic Table Matching Game - Advanced Server Core
+ * Periodic Table Matching Game - Advanced Server Core (Patched v1.1)
  * Architecture: Node.js, Express, Socket.io
- * Scale: Production-ready multi-room enterprise architecture
+ * Security Patches: Player count strict enforcement (4-5 players), Host authorization validation
  */
 
 const express = require('express');
@@ -23,7 +23,6 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 1번부터 25번까지의 고정 정밀 원소 데이터셋
 const PROTO_ELEMENTS = [
     {"num": 1, "symbol": "H", "ko": "수소", "en": "Hydrogen", "period": 1, "group": 1},
     {"num": 2, "symbol": "He", "ko": "헬륨", "en": "Helium", "period": 1, "group": 18},
@@ -40,7 +39,7 @@ const PROTO_ELEMENTS = [
     {"num": 13, "symbol": "Al", "ko": "알루미늄", "en": "Aluminum", "period": 3, "group": 13},
     {"num": 14, "symbol": "Si", "ko": "규소", "en": "Silicon", "period": 3, "group": 14},
     {"num": 15, "symbol": "P", "ko": "인", "en": "Phosphorus", "period": 3, "group": 15},
-    {"num": 16, "symbol": "Sulfur", "ko": "황", "en": "Sulfur", "period": 3, "group": 16},
+    {"num": 16, "symbol": "S", "ko": "황", "en": "Sulfur", "period": 3, "group": 16},
     {"num": 17, "symbol": "Cl", "ko": "염소", "en": "Chlorine", "period": 3, "group": 17},
     {"num": 18, "symbol": "Ar", "ko": "아르곤", "en": "Argon", "period": 3, "group": 18},
     {"num": 19, "symbol": "K", "ko": "칼륨", "en": "Potassium", "period": 4, "group": 1},
@@ -52,17 +51,16 @@ const PROTO_ELEMENTS = [
     {"num": 25, "symbol": "Mn", "ko": "망가니즈", "en": "Manganese", "period": 4, "group": 7}
 ];
 
-// 글로벌 메모리 데이터베이스 공간 (다중 룸 인스턴스)
 const activeRooms = new Map();
 
 class GameRoom {
-    constructor(roomId, maxPlayers = 4) {
+    constructor(roomId, maxPlayers = 5) {
         this.roomId = roomId;
-        this.maxPlayers = parseInt(maxPlayers) || 4;
-        this.players = []; // 구조: { id, name, cards: [], isAI: false, socketId }
+        this.maxPlayers = 5; // 최대 인원 5명 고정
+        this.players = [];
         this.turnIndex = 0;
         this.gameStarted = false;
-        this.matchedElements = []; // 보드판에 활성화될 원소 번호 배열
+        this.matchedElements = [];
         this.historyLogs = [];
         this.aiTimer = null;
     }
@@ -90,7 +88,6 @@ class GameRoom {
             matchedElements: this.matchedElements
         });
 
-        // 각 개인 플레이어들에게 보안상 본인 카드패 정보만 가공하여 별도 전송
         this.players.forEach(p => {
             if (!p.isAI && p.socketId) {
                 io.to(p.socketId).emit('personal_cards_sync', p.cards);
@@ -106,7 +103,6 @@ class GameRoom {
         });
         deck.push({ id: `card_999_joker`, num: 999, symbol: "JK", name: "JOKER 🃏", lang: 'joker' });
 
-        // Fisher-Yates 고성능 암호학적 셔플 알고리즘
         for (let i = deck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -125,7 +121,7 @@ class GameRoom {
                         const elData = PROTO_ELEMENTS.find(e => e.num === elementNum);
                         this.matchedElements.push(elementNum);
                         
-                        this.addLog(`${playerObject.name}님이 초기 카드 분배에서 [${elData.symbol} - ${elData.ko}/${elData.en}] 매칭에 성공하여 패를 버렸습니다.`);
+                        this.addLog(`${playerObject.name}님이 분배 패에서 [${elData.symbol} - ${elData.ko}/${elData.en}] 소거 완료.`);
                         
                         cards.splice(j, 1);
                         cards.splice(i, 1);
@@ -140,27 +136,27 @@ class GameRoom {
     }
 
     initializeGame() {
-        if (this.players.length < 2) return false;
+        // 엄격한 규칙 준수: 인원수가 정확히 4명 또는 5명일 때만 작동 명시
+        if (this.players.length !== 4 && this.players.length !== 5) return false;
+        
         this.gameStarted = true;
         this.matchedElements = [];
         
         let deck = this.generateDeck();
         let pCount = this.players.length;
 
-        // 정확한 분배 수학적 알고리즘 유도 (4인: 12,13,13,13 / 5인: 10,10,10,10,11)
         let idx = 0;
         while (deck.length > 0) {
             this.players[idx % pCount].cards.push(deck.pop());
             idx++;
         }
 
-        // 전체 유저 핸드 동기화 및 초기 매칭 자동 소거 연출 유도
         this.players.forEach(p => {
             p.cards = this.filterInitialPairs(p.cards, p);
         });
 
         this.turnIndex = 0;
-        this.addLog("게임 세션이 정식 가동되었습니다. 모든 플레이어에게 카드가 고르게 배정되었습니다.");
+        this.addLog(`게임 세션 기동 완료. (${pCount}인 체제 분배 완료)`);
         
         this.broadcastState();
         this.checkGameEndCondition();
@@ -189,9 +185,8 @@ class GameRoom {
         const stolenCard = victim.cards.splice(cardIdx, 1)[0];
         thief.cards.push(stolenCard);
 
-        this.addLog(`${thief.name} 플레이어가 ${victim.name}의 카드 한 장을 지목하여 가져왔습니다.`);
+        this.addLog(`${thief.name}가 ${victim.name}의 카드 1장을 탈취했습니다.`);
 
-        // 강탈 후 실시간 매칭 검증 스캔 연출 코드
         let hasPair = false;
         for (let i = 0; i < thief.cards.length; i++) {
             for (let j = i + 1; j < thief.cards.length; j++) {
@@ -200,7 +195,7 @@ class GameRoom {
                     const elData = PROTO_ELEMENTS.find(e => e.num === matchedNum);
                     this.matchedElements.push(matchedNum);
                     
-                    this.addLog(`✨ 대박! ${thief.name}님이 결합에 성공했습니다: [${elData.symbol} - ${elData.ko}/${elData.en}]`);
+                    this.addLog(`✨ 결합 성공: [${elData.symbol} - ${elData.ko}/${elData.en}]`);
                     
                     thief.cards.splice(j, 1);
                     thief.cards.splice(i, 1);
@@ -246,7 +241,6 @@ class GameRoom {
         this.aiTimer = setTimeout(() => {
             if (!this.gameStarted) return;
             
-            // 왼쪽 플레이어 역추적 타겟 선정 연출
             let victimIdx = (this.turnIndex - 1 + this.players.length) % this.players.length;
             while (this.players[victimIdx].cards.length === 0 && victimIdx !== this.turnIndex) {
                 victimIdx = (victimIdx - 1 + this.players.length) % this.players.length;
@@ -275,7 +269,7 @@ class GameRoom {
 
         if (winner) {
             let loser = this.players.find(p => p.cards.some(c => c.num === 999));
-            if (!loser) loser = { name: "조커 증발 오류" };
+            if (!loser) loser = { name: "조커 미보유자 격리 오류" };
 
             io.to(this.roomId).emit('game_over_broadcast', {
                 winner: winner.name,
@@ -291,14 +285,13 @@ class GameRoom {
     }
 }
 
-// Socket.io 통신 이벤트 버스 정의
 io.on('connection', (socket) => {
     let currentRoomId = null;
     let playerUniqueId = null;
 
     socket.on('req_create_room', (data) => {
         const roomId = crypto.randomBytes(3).toString('hex').toUpperCase();
-        const room = new GameRoom(roomId, data.maxPlayers);
+        const room = new GameRoom(roomId);
         activeRooms.set(roomId, room);
         socket.emit('res_create_room', { roomId });
     });
@@ -308,19 +301,19 @@ io.on('connection', (socket) => {
         const room = activeRooms.get(roomId);
 
         if (!room) {
-            return socket.emit('err_toast', "존재하지 않는 가상 대기방 번호입니다.");
+            return socket.emit('err_toast', "존재하지 않는 방 주소입니다.");
         }
         if (room.gameStarted) {
-            return socket.emit('err_toast', "이미 실시간 대전 레이싱이 가동 중인 방입니다.");
+            return socket.emit('err_toast', "이미 레이스가 시작된 배틀룸입니다.");
         }
         if (room.players.length >= room.maxPlayers) {
-            return socket.emit('err_toast', "방 인원 한도가 가득 찼습니다.");
+            return socket.emit('err_toast', "방 최대 인원(5명)에 도달했습니다.");
         }
 
         playerUniqueId = `usr_${crypto.randomBytes(4).toString('hex')}`;
         const newPlayer = {
             id: playerUniqueId,
-            name: name || `익명_${Math.floor(Math.random()*1000)}`,
+            name: name || `에이전트_${Math.floor(Math.random()*1000)}`,
             cards: [],
             isAI: false,
             socketId: socket.id
@@ -332,7 +325,7 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         socket.emit('login_success', { myId: playerUniqueId, roomId });
         
-        room.addLog(`${newPlayer.name} 플레이어가 대기 서버에 접속했습니다.`);
+        room.addLog(`${newPlayer.name} 에이전트 결착 대기열 등록.`);
         room.broadcastState();
     });
 
@@ -341,17 +334,22 @@ io.on('connection', (socket) => {
         const room = activeRooms.get(currentRoomId);
         if (!room || room.gameStarted || room.players.length >= room.maxPlayers) return;
 
+        // 인계 권한 보안 체크 (방장만 AI 추가가 가능하도록 한정)
+        if (room.players[0].id !== playerUniqueId) {
+            return socket.emit('err_toast', "AI 모듈 제어 권한은 오직 방장에게만 귀속됩니다.");
+        }
+
         const aiId = `ai_${crypto.randomBytes(4).toString('hex')}`;
         const aiPlayer = {
             id: aiId,
-            name: `AI_Robot_${room.players.length + 1}`,
+            name: `AI_Bot_${room.players.length + 1}`,
             cards: [],
             isAI: true,
             socketId: null
         };
 
         room.players.push(aiPlayer);
-        room.addLog(`${aiPlayer.name} 연산 모듈이 빈 슬롯에 자동 매칭되었습니다.`);
+        room.addLog(`${aiPlayer.name} 연산 모듈 강제 할당 완료.`);
         room.broadcastState();
     });
 
@@ -360,8 +358,14 @@ io.on('connection', (socket) => {
         const room = activeRooms.get(currentRoomId);
         if (!room || room.gameStarted) return;
 
-        if (room.players.length < 2) {
-            return socket.emit('err_toast', "최소 2인 이상의 플레이어(AI 포함)가 필요합니다.");
+        // 방장 권한 보안 패치: 배열의 최초 개설자(0번째) 아이디와 요청자 아이디 일치 검증
+        if (room.players[0].id !== playerUniqueId) {
+            return socket.emit('err_toast', "방장이 아닌 플레이어는 배틀 아레나를 기동할 수 없습니다.");
+        }
+
+        // 인원수 조건 엄격 제한 패치: 무조건 정확히 4명 또는 5명 조건 만족 스캔
+        if (room.players.length !== 4 && room.players.length !== 5) {
+            return socket.emit('err_toast', `공정성 시스템 위반: 현재 인원은 ${room.players.length}명입니다. 매칭 스케일은 오직 4명 또는 5인 체제에서만 정상 성립됩니다.`);
         }
 
         room.initializeGame();
@@ -374,10 +378,9 @@ io.on('connection', (socket) => {
 
         const activePlayer = room.players[room.turnIndex];
         if (activePlayer.id !== playerUniqueId) {
-            return socket.emit('err_toast', "본인의 처리 턴이 아닙니다.");
+            return socket.emit('err_toast', "현재 당신의 연산 턴 제어 타이밍이 아닙니다.");
         }
 
-        // 내 이전 타겟 플레이어 검증 연출 확인 로직
         let expectedVictimIdx = (room.turnIndex - 1 + room.players.length) % room.players.length;
         while (room.players[expectedVictimIdx].cards.length === 0 && expectedVictimIdx !== room.turnIndex) {
             expectedVictimIdx = (expectedVictimIdx - 1 + room.players.length) % room.players.length;
@@ -385,7 +388,7 @@ io.on('connection', (socket) => {
 
         const targetVictim = room.players[expectedVictimIdx];
         if (targetVictim.id !== data.victimId) {
-            return socket.emit('err_toast', "규칙상 바로 이전 유저의 카드만 타겟 조준할 수 있습니다.");
+            return socket.emit('err_toast', "체인 규칙 위반: 오직 직전 순서 유저의 자원만 조준 강탈할 수 있습니다.");
         }
 
         room.executeCardRobbery(playerUniqueId, data.victimId, data.cardId);
@@ -396,7 +399,7 @@ io.on('connection', (socket) => {
             const room = activeRooms.get(currentRoomId);
             if (room) {
                 room.players = room.players.filter(p => p.socketId !== socket.id);
-                room.addLog("유저 연결 해제 감지. 패 자원을 회수 및 재정렬합니다.");
+                room.addLog("에이전트 이탈 감지. 채널 인프라 재정렬화 스캔 가동.");
                 
                 if (room.players.filter(p => !p.isAI).length === 0) {
                     if (room.aiTimer) clearTimeout(room.aiTimer);
