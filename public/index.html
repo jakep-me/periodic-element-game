@@ -56,7 +56,7 @@
         .element-tile-node.activated-fused { filter: grayscale(0%); opacity: 1; transform: scale(1.05); box-shadow: 0 0 15px rgba(0,243,150,0.5); border-color: #00ff96; background: radial-gradient(circle, #132f27 0%, #061510 100%); }
 
         /* 실시간 다른 플레이어들의 가상 레이아웃 영역 */
-        .opponents-deck-horizon { display: flex; justify-content: center; gap: 15px; background: rgba(20, 25, 35, 0.6); padding: 12px; border-radius: 10px; border: 1px solid #1f293d; }
+        .opponents-deck-horizon { display: flex; justify-content: center; gap: 15px; background: rgba(20, 25, 35, 0.6); padding: 12px; border-radius: 10px; border: 1px solid #1f293d; min-height: 100px; }
         .opponent-cluster-card { background: #161b26; border: 1px solid #253147; border-radius: 8px; padding: 10px; width: 220px; position: relative; text-align: left; transition: 0.3s; }
         .opponent-cluster-card.targeted-active-turn { border-color: #ff9800; box-shadow: 0 0 12px rgba(255,152,0,0.4); background: #221c16; }
         .opponent-card-back-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
@@ -138,17 +138,14 @@
                 <div class="status-pill">ACTIVE PLAYERS: <span id="displayPlayerCount">0</span>/5</div>
             </div>
 
-            <div class="periodic-table-arena-canvas" id="periodicTableBoard">
-                </div>
+            <div class="periodic-table-arena-canvas" id="periodicTableBoard"></div>
 
-            <div class="opponents-deck-horizon" id="opponentsWrapper">
-                </div>
+            <div class="opponents-deck-horizon" id="opponentsWrapper"></div>
 
             <section class="my-private-deck-anchor">
                 <div class="adsense-dynamic-slot" style="position:absolute; right:15px; top:5px; width:200px; margin:0;">AD BANNER LOWER</div>
                 <h3 style="font-size:14px; margin-bottom:10px; color:#7a8c9e;">MY PRIVATE HANDS (<span id="myCardCount">0</span>)</h3>
-                <div class="deck-scroller-flow" id="myPrivateCardsContainer">
-                    </div>
+                <div class="deck-scroller-flow" id="myPrivateCardsContainer"></div>
             </section>
 
         </main>
@@ -169,7 +166,6 @@
         let globalRoomId = null;
         let localCachedState = null;
 
-        // 원소 그리드 드로잉을 위한 주기율표 매핑 배치 레이아웃 파서 규칙 정의
         const ELEMENT_MAP_RULES = [
             {num:1, r:1, c:1}, {num:2, r:1, c:18},
             {num:3, r:2, c:1}, {num:4, r:2, c:2}, {num:5, r:2, c:13}, {num:6, r:2, c:14}, {num:7, r:2, c:15}, {num:8, r:2, c:16}, {num:9, r:2, c:17}, {num:10, r:2, c:18},
@@ -177,12 +173,10 @@
             {num:19, r:4, c:1}, {num:20, r:4, c:2}, {num:21, r:4, c:3}, {num:22, r:4, c:4}, {num:23, r:4, c:5}, {num:24, r:4, c:6}, {num:25, r:4, c:7}
         ];
 
-        // 초기 주기율표 아레나 보드 시각 구조 정렬화 실행
         function renderBasePeriodicTableStructure() {
             const board = document.getElementById('periodicTableBoard');
             board.innerHTML = '';
             
-            // 25번까지의 원소 정보 데이터 임시 맵 구축
             const symbolMapping = {
                 1:"H", 2:"He", 3:"Li", 4:"Be", 5:"B", 6:"C", 7:"N", 8:"O", 9:"F", 10:"Ne",
                 11:"Na", 12:"Mg", 13:"Al", 14:"Si", 15:"P", 16:"S", 17:"Cl", 18:"Ar",
@@ -234,10 +228,8 @@
             if(!localCachedState || !localCachedState.gameStarted) return;
             
             const myTurnUser = localCachedState.players[localCachedState.turnIndex];
-            if(myTurnUser.id !== globalMyId) return; // 본인 턴 검증
+            if(myTurnUser.id !== globalMyId) return;
 
-            // 클릭 이벤트 좌표 및 타겟 훔치기 소켓 바인딩 통신 요청
-            const rect = domElement.getBoundingClientRect();
             socket.emit('req_rob_card', { victimId, cardId });
         }
 
@@ -282,7 +274,6 @@
                 }
             }
 
-            // 주기율표 보드판 물리 매칭 동기화 동적 스캔 연출
             ELEMENT_MAP_RULES.forEach(rule => {
                 const targetTile = document.getElementById(`tile_element_${rule.num}`);
                 if(targetTile) {
@@ -294,22 +285,16 @@
                 }
             });
 
-            // 상대방 가상 클러스터 덱 렌더링 파트
             const oppsWrapper = document.getElementById('opponentsWrapper');
             oppsWrapper.innerHTML = '';
 
-            // 내 기준 바로 직전 순서 유저 인덱스 연산 알고리즘
-            let myIndex = state.players.findIndex(p => p.id === globalMyId);
-            let expectedVictimIdx = -1;
-            if (myIndex !== -1 && state.gameStarted) {
-                expectedVictimIdx = (state.turnIndex - 1 + state.players.length) % state.players.length;
-                while (state.players[expectedVictimIdx].cards.length === 0 && expectedVictimIdx !== state.turnIndex) {
-                    expectedVictimIdx = (expectedVictimIdx - 1 + state.players.length) % state.players.length;
-                }
+            let expectedVictimIdx = (state.turnIndex - 1 + state.players.length) % state.players.length;
+            while (state.players[expectedVictimIdx] && state.players[expectedVictimIdx].cardCount === 0 && expectedVictimIdx !== state.turnIndex) {
+                expectedVictimIdx = (expectedVictimIdx - 1 + state.players.length) % state.players.length;
             }
 
             state.players.forEach((p, idx) => {
-                if(p.id === globalMyId) return; // 본인 제외 상대만 그리기
+                if(p.id === globalMyId) return;
 
                 const cluster = document.createElement('div');
                 cluster.className = `opponent-cluster-card ${idx === state.turnIndex ? 'targeted-active-turn' : ''}`;
@@ -335,7 +320,6 @@
             });
         });
 
-        // 보안 채널을 통한 내 실제 카드 렌더링 결합
         socket.on('personal_cards_sync', (cards) => {
             document.getElementById('myCardCount').innerText = cards.length;
             const container = document.getElementById('myPrivateCardsContainer');
@@ -355,7 +339,6 @@
             });
         });
 
-        // 실시간 카드 유도 비행 물리학 애니메이션 트리거 효과 파서
         socket.on('animation_rob_trigger', (data) => {
             const thiefNode = document.getElementById(`cluster_node_${data.thiefId}`) || document.querySelector('.my-private-deck-anchor');
             const victimNode = document.getElementById(`cluster_node_${data.victimId}`) || document.querySelector('.my-private-deck-anchor');
@@ -371,7 +354,6 @@
             particle.style.top = `${vRect.top + (vRect.height/2) - 57}px`;
             document.body.appendChild(particle);
 
-            // 하드웨어 가속 강제 브라우저 리플로우 유도 인터벌
             setTimeout(() => {
                 particle.style.transform = `scale(0.4) rotate(180deg)`;
                 particle.style.left = `${tRect.left + (tRect.width/2) - 40}px`;
@@ -390,7 +372,6 @@
             modal.classList.add('visible-show');
         });
 
-        // 최초 로딩 시 주기율표 베이스 그리기 자동 발동
         window.addEventListener('DOMContentLoaded', () => {
             renderBasePeriodicTableStructure();
         });
